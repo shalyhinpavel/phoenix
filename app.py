@@ -8,33 +8,19 @@ from pydantic import BaseModel, ValidationError, create_model
 from typing import Type, Dict, Any, List, Optional, Type
 
 # ==============================================================================
-# 1. YOUR SEMANTIC PARSER CODE (with translated comments)
+# 1. NEW, IMPROVED SEMANTIC PARSER CODE
 # ==============================================================================
 
 class ParsingError(Exception):
-    """Custom exception for parsing failures."""
     def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
         super().__init__(message)
         self.context = context if context is not None else {}
 
 class AdaptiveSemanticParser:
-    """
-    A robust parser that attempts to extract a JSON object from a string
-    using a cascade of strategies.
-    """
+
     def __init__(self):
-        # Pre-compile the pattern for Markdown
         self.json_block_pattern = re.compile(
             r"```(?:json)?\s*\n({.*?})\n\s*```", re.DOTALL)
-
-    def _clean_value(self, value: str) -> str:
-        # Remove quotes
-        if value.startswith('"') and value.endswith('"'):
-            value = value[1:-1]
-        # Remove a trailing dot for numbers
-        if value.endswith('.') and value[:-1].replace('.', '', 1).isdigit():
-            value = value[:-1]
-        return value
 
     def _validate_and_dump(self, data: Any, schema: Type[BaseModel]) -> Dict[str, Any]:
         """Helper function to validate and return data."""
@@ -42,58 +28,37 @@ class AdaptiveSemanticParser:
         return validated_model.model_dump()
 
     def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
-        """Final layer: semantic extraction from natural text."""
+        """
+        COMPLETELY REWORKED SEMANTIC LAYER.
+        It now intelligently searches for values, rather than just "greedily" capturing text.
+        """
         extracted_data: Dict[str, Any] = {}
         schema_fields = schema.model_fields
-
+        
+        # Iterate over all fields from the expected schema
         for field_name in schema_fields.keys():
-            # Create a regex to find "field_name: value" patterns
-            pattern = re.compile(
-                rf"\b{re.escape(field_name)}\b\s*:\s*(.*)", re.IGNORECASE)
-            matches = pattern.findall(text)
-            if matches:
-                # Use the last match found for a given field
-                cleaned_value = self._clean_value(matches[-1].strip())
-                extracted_data[field_name] = cleaned_value
-
-        if not extracted_data:
-            raise ParsingError("Semantic layer could not extract any fields.")
-
-        return self._validate_and_dump(extracted_data, schema)
-
-    def parse(self, raw_llm_output: str, expected_schema: Type[BaseModel]) -> Dict[str, Any]:
-        """
-        The main method that passes LLM output through the full cascade of parsers.
-        """
-        if not raw_llm_output or not raw_llm_output.strip():
-            raise ParsingError("Input text is empty or contains only whitespace.")
-
-        # --- Layer 1: Find and extract JSON from Markdown blocks ---
-        match = self.json_block_pattern.search(raw_llm_output)
-        if match:
-            json_str = match.group(1)
             try:
-                # Try to parse the extracted JSON
-                return self._validate_and_dump(json.loads(json_str), expected_schema)
-            except (json.JSONDecodeError, ValidationError):
-                # If it's broken, we don't give up and pass the content on
-                raw_llm_output = json_str
+                # 1. Create a very flexible pattern to find the key.
+                # It looks for a key that can be in quotes (or without) and a colon.
+                key_pattern = re.compile(f'["\']?{re.escape(field_name)}["\']?\\s*:', re.IGNORECASE)
+                
+                # Search for all occurrences of this key in the text
+                for match in key_pattern.finditer(text):
+                    # 2. Take the text IMMEDIATELY AFTER the colon
+                    start_index = match.end()
+                    potential_value_area = text[start_index:]
+                    
+                    # 3. Apply a cascade of patterns to extract the VALUE.
+                    # This is the most important part: we are looking for specific data types.
+                    
+                    # First, look for a number (the strictest pattern)
+                    value_match = re.match(r'\s*(-?\d+\.?\d*)', potential_value_area)
+                    if value_match:
+                        extracted_data[field_name] = value_match.group(1)
+                        continue
 
-        # --- Layer 2: Direct parsing (for clean JSON or extracted-but-broken JSON) ---
-        try:
-            return self._validate_and_dump(json.loads(raw_llm_output), expected_schema)
-        except (json.JSONDecodeError, ValidationError):
-            pass
-
-        # --- Layer 3 (Final): Semantic extraction from text ---
-        try:
-            return self._parse_semantic(raw_llm_output, expected_schema)
-        except (ParsingError, ValidationError) as e:
-            # If even semantics didn't help, then it's the end.
-            raise ParsingError(
-                "Failed to parse or validate LLM output after all layers.",
-                context={"final_error": str(e)}
-            )
+                    # Then, look for a value in double or single quotes
+                    value_match = re.match(r'\s*["\'](.*?)["\']', potential_val
 
 # ==============================================================================
 # 2. LOGIC FOR THE GRADIO DEMO
