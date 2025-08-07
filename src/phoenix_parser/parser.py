@@ -11,7 +11,6 @@ from typing import Type, Dict, Any, Optional
 # ==============================================================================
 
 class ParsingError(Exception):
-    # ... (без изменений) ...
     def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
         super().__init__(message)
         self.context = context if context is not None else {}
