@@ -1,4 +1,4 @@
-# app.py
+# parser.py
 # -*- coding: utf-8 -*-
 
 import gradio as gr
