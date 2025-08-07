@@ -1,1 +1,1 @@
-from .adaptive_parser import AdaptiveSemanticParser, ParsingError
+from .parser import AdaptiveSemanticParser, ParsingError 
