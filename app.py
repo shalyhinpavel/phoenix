@@ -1,142 +1,25 @@
-# parser.py
+# app.py
 # -*- coding: utf-8 -*-
+
+# ==============================================================================
+# 0. IMPORT THE CORE PARSER FROM OUR LIBRARY
+# ==============================================================================
+from src.phoenix_parser.parser import AdaptiveSemanticParser, ParsingError
 
 import gradio as gr
 import json
-import re
 from pydantic import BaseModel, ValidationError, create_model
-from typing import Type, Dict, Any, List, Optional
+from typing import Type, Dict, Any, List
 
 # ==============================================================================
-# 1. FINAL, CORRECTED AND SYNTAX-CHECKED SEMANTIC PARSER CODE
-# ==============================================================================
-
-class ParsingError(Exception):
-    """Custom exception for parsing failures."""
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
-        super().__init__(message)
-        self.context = context if context is not None else {}
-
-class AdaptiveSemanticParser:
-    """
-    A robust parser that attempts to extract a JSON object from a string
-    using a cascade of strategies.
-    """
-    def __init__(self):
-        self.json_block_pattern = re.compile(
-            r"```(?:json)?\s*\n({.*?})\n\s*```", re.DOTALL)
-
-    def _validate_and_dump(self, data: Any, schema: Type[BaseModel]) -> Dict[str, Any]:
-        """Helper function to validate and return data."""
-        validated_model = schema.model_validate(data)
-        return validated_model.model_dump()
-
-    def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
-        """
-        FINAL, POLISHED VERSION OF THE SEMANTIC LAYER.
-        It now correctly cleans trailing dots from extracted values.
-        """
-        extracted_data: Dict[str, Any] = {}
-        schema_fields = schema.model_fields
-        
-        for field_name in schema_fields.keys():
-            try:
-                pattern_friendly_name = field_name.replace('_', '[\\s_-]*')
-                key_pattern = re.compile(f'["\']?{pattern_friendly_name}["\']?\\s*:?', re.IGNORECASE)
-                
-                for match in key_pattern.finditer(text):
-                    start_index = match.end()
-                    potential_value_area = text[start_index:]
-                    
-                    value_to_add = None
-
-                    # Attempt to find a number
-                    value_match = re.match(r'\s*(-?\d+\.?\d*)', potential_value_area)
-                    if value_match:
-                        value_to_add = value_match.group(1)
-
-                    # If not a number, attempt to find a value in quotes
-                    if value_to_add is None:
-                        value_match = re.match(r'\s*["\'](.*?)["\']', potential_value_area)
-                        if value_match:
-                            value_to_add = value_match.group(1)
-
-                    # If not in quotes, attempt to find a boolean
-                    if value_to_add is None:
-                        value_match = re.match(r'\s*(true|false)', potential_value_area, re.IGNORECASE)
-                        if value_match:
-                            value_to_add = value_match.group(1).lower()
-                        
-                    # As a last resort, take a single word
-                    if value_to_add is None:
-                        value_match = re.match(r'\s*([^\s,}\]]+)', potential_value_area)
-                        if value_match:
-                            value_to_add = value_match.group(1)
-                    
-                    # FINAL FIX IS HERE: CLEAN THE EXTRACTED VALUE
-                    if value_to_add is not None:
-                        # Remove trailing dot, but only if it's not part of a decimal number
-                        if value_to_add.endswith('.') and value_to_add[:-1].replace('.', '', 1).isdigit():
-                            value_to_add = value_to_add[:-1]
-                        
-                        extracted_data[field_name] = value_to_add
-                        # Once we found a value for this field, we can stop searching
-                        break 
-                        
-            except Exception:
-                continue
-
-        if not extracted_data:
-            raise ParsingError("The semantic layer could not extract any fields.")
-
-        return self._validate_and_dump(extracted_data, schema)
-
-    def parse(self, raw_llm_output: str, expected_schema: Type[BaseModel]) -> Dict[str, Any]:
-        """
-        The main method that passes the LLM output through a cascade of parsers.
-        """
-        if not raw_llm_output or not raw_llm_output.strip():
-            raise ParsingError("Input text is empty or consists of whitespace.")
-
-        # Layer 1: Find and extract JSON from Markdown blocks
-        match = self.json_block_pattern.search(raw_llm_output)
-        if match:
-            json_str = match.group(1)
-            try:
-                return self._validate_and_dump(json.loads(json_str), expected_schema)
-            except (json.JSONDecodeError, ValidationError):
-                raw_llm_output = json_str
-
-        # Layer 2: Direct parsing
-        try:
-            text_no_comments = re.sub(r'(?://|#).*', '', raw_llm_output)
-            return self._validate_and_dump(json.loads(text_no_comments), expected_schema)
-        except (json.JSONDecodeError, ValidationError):
-            pass
-
-        # Layer 3 (Final): Semantic extraction
-        try:
-            return self._parse_semantic(raw_llm_output, expected_schema)
-        except (ParsingError, ValidationError) as e:
-            raise ParsingError(
-                "Failed to parse or validate the output after all layers.",
-                context={"final_error": str(e)}
-            )
-
-# ==============================================================================
-# 2. LOGIC FOR THE GRADIO DEMO
+# 1. LOGIC FOR THE GRADIO DEMO
 # ==============================================================================
 
 adaptive_parser = AdaptiveSemanticParser()
 
 TYPE_MAP = {
-    "str": str,
-    "int": int,
-    "float": float,
-    "bool": bool,
-    "list": List,
-    "dict": Dict,
-    "any": Any,
+    "str": str, "int": int, "float": float, "bool": bool,
+    "list": List, "dict": Dict, "any": Any,
 }
 
 def create_dynamic_schema(schema_definition: str) -> Type[BaseModel]:
@@ -168,9 +51,8 @@ def run_parser_demo(raw_input: str, schema_definition: str):
     return output_json, output_error
 
 # ==============================================================================
-# 3. GRADIO INTERFACE DEFINITION
+# 2. GRADIO INTERFACE DEFINITION
 # ==============================================================================
-
 description = """
 # Adaptive Semantic Parser Demo 🚀
 This tool demonstrates a parser that can extract structured data (JSON) even from messy, incomplete, or plain-text input.
