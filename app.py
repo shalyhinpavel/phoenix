@@ -8,7 +8,7 @@ from pydantic import BaseModel, ValidationError, create_model
 from typing import Type, Dict, Any, List, Optional
 
 # ==============================================================================
-# 1. SEMANTIC PARSER CODE
+# 1. FINAL, CORRECTED AND VERIFIED SEMANTIC PARSER CODE
 # ==============================================================================
 
 class ParsingError(Exception):
@@ -32,50 +32,51 @@ class AdaptiveSemanticParser:
         validated_model = schema.model_validate(data)
         return validated_model.model_dump()
 
-        def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
+    def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
+        """
+        FINAL VERSION OF THE SEMANTIC LAYER.
+        It now understands that 'order_number' in the schema can match 'Order number' in the text.
+        """
         extracted_data: Dict[str, Any] = {}
         schema_fields = schema.model_fields
         
         for field_name in schema_fields.keys():
             try:
+                # Convert 'order_number' to 'order[\s_-]*number' to match variations.
                 pattern_friendly_name = field_name.replace('_', '[\\s_-]*')
-
                 key_pattern = re.compile(f'["\']?{pattern_friendly_name}["\']?\\s*:', re.IGNORECASE)
                 
                 for match in key_pattern.finditer(text):
                     start_index = match.end()
                     potential_value_area = text[start_index:]
-                                        
+                    
+                    # Cascade of patterns to extract the value
+                    
+                    # Attempt to find a number
                     value_match = re.match(r'\s*(-?\d+\.?\d*)', potential_value_area)
                     if value_match:
                         extracted_data[field_name] = value_match.group(1)
                         continue
 
+                    # Attempt to find a value in quotes
                     value_match = re.match(r'\s*["\'](.*?)["\']', potential_value_area)
                     if value_match:
                         extracted_data[field_name] = value_match.group(1)
                         continue
 
+                    # Attempt to find a boolean
                     value_match = re.match(r'\s*(true|false)', potential_value_area, re.IGNORECASE)
                     if value_match:
                         extracted_data[field_name] = value_match.group(1).lower()
                         continue
                         
+                    # As a last resort, take a single word
                     value_match = re.match(r'\s*([^\s,}\]]+)', potential_value_area)
                     if value_match:
                         value = value_match.group(1).rstrip('.')
                         extracted_data[field_name] = value
                         
             except Exception:
-                continue
-
-        if not extracted_data:
-            raise ParsingError("Семантический слой не смог извлечь ни одного поля.")
-
-        return self._validate_and_dump(extracted_data, schema)
-                        
-            except Exception:
-                # If something went wrong while parsing a field, just skip it and move to the next one.
                 continue
 
         if not extracted_data:
@@ -90,30 +91,26 @@ class AdaptiveSemanticParser:
         if not raw_llm_output or not raw_llm_output.strip():
             raise ParsingError("Input text is empty or consists of whitespace.")
 
-        # --- Layer 1: Find and extract JSON from Markdown blocks ---
+        # Layer 1: Find and extract JSON from Markdown blocks
         match = self.json_block_pattern.search(raw_llm_output)
         if match:
             json_str = match.group(1)
             try:
-                # Try to parse the extracted JSON
                 return self._validate_and_dump(json.loads(json_str), expected_schema)
             except (json.JSONDecodeError, ValidationError):
-                # If it's broken, don't give up and pass it on
                 raw_llm_output = json_str
 
-        # --- Layer 2: Direct parsing (for clean JSON or extracted but broken JSON) ---
+        # Layer 2: Direct parsing
         try:
-            # Remove JS/Python-style comments before parsing
             text_no_comments = re.sub(r'(?://|#).*', '', raw_llm_output)
             return self._validate_and_dump(json.loads(text_no_comments), expected_schema)
         except (json.JSONDecodeError, ValidationError):
             pass
 
-        # --- Layer 3 (Final): Semantic extraction from text ---
+        # Layer 3 (Final): Semantic extraction
         try:
             return self._parse_semantic(raw_llm_output, expected_schema)
         except (ParsingError, ValidationError) as e:
-            # If even semantics didn't help, then it's over.
             raise ParsingError(
                 "Failed to parse or validate the output after all layers.",
                 context={"final_error": str(e)}
@@ -203,7 +200,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     gr.Markdown(description)
     with gr.Row():
         with gr.Column(scale=1):
-            schema_input = gr.Textbox(label="1. Schema Definition (as JSON)", placeholder='E.g., {"name": "str", "age": "int"}', lines=5, value='{"name": "str", "age": "int", "city": "str"}')
+            schema_input = gr.Textbox(label="1. Schema Definition (as JSON)", placeholder='E.g., {"name": "str", "age": "int"}', lines=5, value='{"order_number": "int", "status": "str", "amount": "float"}')
             raw_text_input = gr.Textbox(label='2. Messy JSON or Text to Parse', placeholder="Paste any text here...", lines=10)
             parse_button = gr.Button("✅ Parse", variant="primary")
         with gr.Column(scale=1):
