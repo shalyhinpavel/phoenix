@@ -8,7 +8,7 @@ build-backend = "hatchling.build"
 name = "phoenix-parser"
 version = "0.1.0"
 authors = [
-  { name="[shalyhinpavel]", email="shalyhinpavel@gmail.com" },
+  { name="shalyhinpavel", email="shalyhinpavel@gmail.com" },
 ]
 description = "An open, more reliable architecture for parsing LLM output."
 readme = "README.md"
