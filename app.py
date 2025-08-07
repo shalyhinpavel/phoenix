@@ -32,51 +32,57 @@ class AdaptiveSemanticParser:
         validated_model = schema.model_validate(data)
         return validated_model.model_dump()
 
-    def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
+        def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
         """
-        FINAL VERSION OF THE SEMANTIC LAYER.
-        It now understands that the colon after a key is optional.
+        FINAL, POLISHED VERSION OF THE SEMANTIC LAYER.
+        It now correctly cleans trailing dots from extracted values.
         """
         extracted_data: Dict[str, Any] = {}
         schema_fields = schema.model_fields
         
         for field_name in schema_fields.keys():
             try:
-                # Convert 'order_number' to 'order[\s_-]*number' to match variations.
                 pattern_friendly_name = field_name.replace('_', '[\\s_-]*')
-                
-                # <<< THE CHANGE IS HERE: The colon ':' is now optional (':?'). >>>
                 key_pattern = re.compile(f'["\']?{pattern_friendly_name}["\']?\\s*:?', re.IGNORECASE)
                 
                 for match in key_pattern.finditer(text):
                     start_index = match.end()
                     potential_value_area = text[start_index:]
                     
-                    # Cascade of patterns to extract the value
-                    
+                    value_to_add = None
+
                     # Attempt to find a number
                     value_match = re.match(r'\s*(-?\d+\.?\d*)', potential_value_area)
                     if value_match:
-                        extracted_data[field_name] = value_match.group(1)
-                        continue
+                        value_to_add = value_match.group(1)
 
-                    # Attempt to find a value in quotes
-                    value_match = re.match(r'\s*["\'](.*?)["\']', potential_value_area)
-                    if value_match:
-                        extracted_data[field_name] = value_match.group(1)
-                        continue
+                    # If not a number, attempt to find a value in quotes
+                    if value_to_add is None:
+                        value_match = re.match(r'\s*["\'](.*?)["\']', potential_value_area)
+                        if value_match:
+                            value_to_add = value_match.group(1)
 
-                    # Attempt to find a boolean
-                    value_match = re.match(r'\s*(true|false)', potential_value_area, re.IGNORECASE)
-                    if value_match:
-                        extracted_data[field_name] = value_match.group(1).lower()
-                        continue
+                    # If not in quotes, attempt to find a boolean
+                    if value_to_add is None:
+                        value_match = re.match(r'\s*(true|false)', potential_value_area, re.IGNORECASE)
+                        if value_match:
+                            value_to_add = value_match.group(1).lower()
                         
                     # As a last resort, take a single word
-                    value_match = re.match(r'\s*([^\s,}\]]+)', potential_value_area)
-                    if value_match:
-                        value = value_match.group(1).rstrip('.')
-                        extracted_data[field_name] = value
+                    if value_to_add is None:
+                        value_match = re.match(r'\s*([^\s,}\]]+)', potential_value_area)
+                        if value_match:
+                            value_to_add = value_match.group(1)
+                    
+                    # <<< FINAL FIX IS HERE: CLEAN THE EXTRACTED VALUE >>>
+                    if value_to_add is not None:
+                        # Remove trailing dot, but only if it's not part of a decimal number
+                        if value_to_add.endswith('.') and value_to_add[:-1].replace('.', '', 1).isdigit():
+                            value_to_add = value_to_add[:-1]
+                        
+                        extracted_data[field_name] = value_to_add
+                        # Once we found a value for this field, we can stop searching
+                        break 
                         
             except Exception:
                 continue
