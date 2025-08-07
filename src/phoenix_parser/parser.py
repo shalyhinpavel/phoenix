@@ -68,11 +68,11 @@ class AdaptiveSemanticParser:
                             value_to_add = value_match.group(1)
                     
                     if value_to_add is not None:
-                        if value_to_add.endswith('.') and not value_to_add[:-1].replace('.', '', 1).isdigit():
-                            value_to_add = value_to_add[:-1]
+                        # Удаляем любые конечные знаки препинания (точка, запятая и т.д.)
+                        value_to_add = value_to_add.rstrip('.,;')
                         
                         extracted_data[field_name] = value_to_add
-                        break 
+                        break
                         
             except Exception:
                 continue
