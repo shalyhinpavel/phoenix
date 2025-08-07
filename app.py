@@ -35,7 +35,7 @@ class AdaptiveSemanticParser:
     def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
         """
         FINAL VERSION OF THE SEMANTIC LAYER.
-        It now understands that 'order_number' in the schema can match 'Order number' in the text.
+        It now understands that the colon after a key is optional.
         """
         extracted_data: Dict[str, Any] = {}
         schema_fields = schema.model_fields
@@ -44,7 +44,9 @@ class AdaptiveSemanticParser:
             try:
                 # Convert 'order_number' to 'order[\s_-]*number' to match variations.
                 pattern_friendly_name = field_name.replace('_', '[\\s_-]*')
-                key_pattern = re.compile(f'["\']?{pattern_friendly_name}["\']?\\s*:', re.IGNORECASE)
+                
+                # <<< THE CHANGE IS HERE: The colon ':' is now optional (':?'). >>>
+                key_pattern = re.compile(f'["\']?{pattern_friendly_name}["\']?\\s*:?', re.IGNORECASE)
                 
                 for match in key_pattern.finditer(text):
                     start_index = match.end()
