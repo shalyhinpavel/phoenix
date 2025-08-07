@@ -1,15 +1,3 @@
----
-title: Phoenix
-emoji: 🔥
-colorFrom: purple
-colorTo: red
-sdk: gradio
-sdk_version: 5.41.1
-app_file: app.py
-pinned: false
-license: apache-2.0
-short_description: An open, more reliable architecture for parsing LLM output.
----
 ![alt text](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 
 Phoenix: A Resilient Semantic Parser for LLM Output
