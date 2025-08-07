@@ -58,7 +58,7 @@ class AdaptiveSemanticParser:
                         continue
 
                     # Then, look for a value in double or single quotes
-                    value_match = re.match(r'\s*["\'](.*?)["\']', potential_val
+                    value_match = re.match(r'\s*["\'](.*?)["\']', potential_value_area)
 
 # ==============================================================================
 # 2. LOGIC FOR THE GRADIO DEMO
