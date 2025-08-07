@@ -8,7 +8,7 @@ build-backend = "hatchling.build"
 name = "phoenix-parser"
 version = "0.1.0"
 authors = [
-  { name="[ТВОЕ ИМЯ ИЛИ НИКНЕЙМ]", email="[ТВОЙ EMAIL]" },
+  { name="[shalyhinpavel]", email="[shalyhinpavel@gmail.com]" },
 ]
 description = "An open, more reliable architecture for parsing LLM output."
 readme = "README.md"
@@ -16,7 +16,6 @@ requires-python = ">=3.8"
 license = { file = "LICENSE" }
 keywords = ["llm", "parser", "json", "semantic-parsing", "ai", "nlp", "pydantic"]
 
-# ЭТО КЛЮЧЕВАЯ СЕКЦИЯ: ЗАВИСИМОСТИ БИБЛИОТЕКИ
 dependencies = [
     "pydantic"
 ]
@@ -33,5 +32,5 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/[ТВОЙ-ЛОГИН-НА-GITHUB]/phoenix"
-"Bug Tracker" = "https://github.com/[ТВОЙ-ЛОГИН-НА-GITHUB]/phoenix/issues"
+"Homepage" = "https://github.com/shalyhinpavel/phoenix"
+"Bug Tracker" = "https://github.com/shalyhinpavel/phoenix/issues"
