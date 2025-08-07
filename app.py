@@ -32,51 +32,47 @@ class AdaptiveSemanticParser:
         validated_model = schema.model_validate(data)
         return validated_model.model_dump()
 
-    def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
-        """
-        COMPLETELY REWORKED SEMANTIC LAYER.
-        It now intelligently searches for values, rather than just "greedily" capturing text.
-        """
+        def _parse_semantic(self, text: str, schema: Type[BaseModel]) -> Dict[str, Any]:
         extracted_data: Dict[str, Any] = {}
         schema_fields = schema.model_fields
         
-        # Iterate over all fields from the expected schema
         for field_name in schema_fields.keys():
             try:
-                # 1. Create a very flexible pattern to find the key.
-                key_pattern = re.compile(f'["\']?{re.escape(field_name)}["\']?\\s*:', re.IGNORECASE)
+                pattern_friendly_name = field_name.replace('_', '[\\s_-]*')
+
+                key_pattern = re.compile(f'["\']?{pattern_friendly_name}["\']?\\s*:', re.IGNORECASE)
                 
-                # Search for all occurrences of this key in the text
                 for match in key_pattern.finditer(text):
-                    # 2. Take the text IMMEDIATELY AFTER the colon
                     start_index = match.end()
                     potential_value_area = text[start_index:]
-                    
-                    # 3. Apply a cascade of patterns to extract the VALUE.
-                    
-                    # First, look for a number (the strictest pattern)
+                                        
                     value_match = re.match(r'\s*(-?\d+\.?\d*)', potential_value_area)
                     if value_match:
                         extracted_data[field_name] = value_match.group(1)
                         continue
 
-                    # Then, look for a value in double or single quotes
                     value_match = re.match(r'\s*["\'](.*?)["\']', potential_value_area)
                     if value_match:
                         extracted_data[field_name] = value_match.group(1)
                         continue
 
-                    # Then, look for boolean values
                     value_match = re.match(r'\s*(true|false)', potential_value_area, re.IGNORECASE)
                     if value_match:
                         extracted_data[field_name] = value_match.group(1).lower()
                         continue
                         
-                    # As a last resort, take a simple word (without spaces or commas)
                     value_match = re.match(r'\s*([^\s,}\]]+)', potential_value_area)
                     if value_match:
                         value = value_match.group(1).rstrip('.')
                         extracted_data[field_name] = value
+                        
+            except Exception:
+                continue
+
+        if not extracted_data:
+            raise ParsingError("Семантический слой не смог извлечь ни одного поля.")
+
+        return self._validate_and_dump(extracted_data, schema)
                         
             except Exception:
                 # If something went wrong while parsing a field, just skip it and move to the next one.
