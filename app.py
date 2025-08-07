@@ -1,9 +1,3 @@
-code
-Python
-download
-content_copy
-expand_less
-
 # app.py
 # -*- coding: utf-8 -*-
 
