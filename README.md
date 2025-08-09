@@ -89,7 +89,7 @@ clean_data = parser.parse(chaotic_llm_output, Feedback)
 
 print(clean_data)
 # Output: {"sentiment": {"type": "positive", "score": 0.9}, "summary": "The user is very happy with the new update!", "keywords": ["new update", "performance"], "rating": "5/5"}
-```
+
 *Note: After parsing, you can perform your own strict type casting and validation in your application code.*
 
 ---
