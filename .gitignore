@@ -1,0 +1,14 @@
+# Virtual Environment
+venv/
+build_env/
+build_env_outside/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# env
+.env
+env/
+
