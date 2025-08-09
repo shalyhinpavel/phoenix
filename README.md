@@ -98,10 +98,10 @@ print(clean_data)
 
 [![Run on Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow.svg)](https://huggingface.co/spaces/shalyhinpavel/phoenix)
 
-Test Phoenix with your own messy data on our live Gradio demo by clicking the badge above.
+Test Phoenix instantly with your own data. Click the badge above to launch the live Gradio demo on Hugging Face Spaces.
 
 ---
 
 ## License
 
-This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for more details.
