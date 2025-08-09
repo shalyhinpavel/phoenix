@@ -92,6 +92,8 @@ print(clean_data)
 ```
 *Note: After parsing, you can perform your own strict type casting and validation in your application code.*
 
+---
+
 ## Live Demo
 
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces/shalyhinpavel/phoenix)
