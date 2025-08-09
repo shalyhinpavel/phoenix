@@ -88,20 +88,15 @@ parser = AdaptiveSemanticParser()
 clean_data = parser.parse(chaotic_llm_output, Feedback)
 
 print(clean_data)
-# Output: {'sentiment': 'positive', 'summary': 'The user is very happy with the new update!', 'keywords': ['new update', 'performance'], 'rating': 5}
+# Output: {"sentiment": "positive", "summary": "The user is very happy with the new update!", "keywords": ["new update", "performance"], "rating": 5}
 ```
 *Note: After parsing, you can perform your own strict type casting and validation in your application code.*
 
----
+---## Live Demo
 
-## Live Demo
+[![Run on Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow.svg)](https://huggingface.co/spaces/shalyhinpavel/phoenix)
 
-[![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces/shalyhinpavel/phoenix)
-
-Test Phoenix with your own messy data on our live Gradio demo.
-
----
-
+Test Phoenix with your own messy data on our live Gradio demo by clicking the badge above.
 ## License
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
