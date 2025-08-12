@@ -80,7 +80,7 @@ class AdaptiveSemanticParser:
         return healed_data
 
     def parse(self, raw_llm_output: str, expected_schema: Type[BaseModel]) -> Dict[str, Any]:
-        """The final, mirrored, most robust cascade, v6.0"""
+        """The final, mirrored, most robust cascade, v5.2"""
         if not raw_llm_output or not raw_llm_output.strip():
             raise ParsingError("Input text is empty.")
 
